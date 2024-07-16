@@ -18,36 +18,6 @@ class _UserFormState extends State<UserForm> {
   final FirestoreService _firestoreService = FirestoreService();
 
   @override
-  void initState() {
-    super.initState();
-    _nameController.addListener(() => _validateField(_nameController));
-    _emailController.addListener(() => _validateField(_emailController));
-    _ageController.addListener(() => _validateField(_ageController));
-  }
-
-  void _validateField(TextEditingController controller) {
-    // Tekrar doğrulama yapılırken formu güncelle
-    if (controller.text.isNotEmpty) {
-      _formKey.currentState!.validate();
-    }
-  }
-
-  void _addUser() {
-    if (_formKey.currentState!.validate()) {
-      final newUser = User(
-        name: _nameController.text,
-        email: _emailController.text,
-        age: int.parse(_ageController.text),
-      );
-      _firestoreService.addUser(newUser);
-      _nameController.clear();
-      _emailController.clear();
-      _ageController.clear();
-      Navigator.pop(context);  // Form gönderildikten sonra geri dön
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -63,21 +33,22 @@ class _UserFormState extends State<UserForm> {
                 validator: Validator.validateName,
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Name'),
-                onChanged: (value) => _formKey.currentState!.validate(),
+                //kullanıcı hangi textformfield üzerindeyse onun hatasını kızartıyor.
+                autovalidateMode: AutovalidateMode.onUserInteraction,
               ),
               TextFormField(
                 validator: Validator.validateEmail,
                 controller: _emailController,
                 decoration: const InputDecoration(labelText: 'Email'),
                 keyboardType: TextInputType.emailAddress,
-                onChanged: (value) => _formKey.currentState!.validate(),
+                autovalidateMode: AutovalidateMode.onUserInteraction,
               ),
               TextFormField(
                 validator: Validator.validateAge,
                 controller: _ageController,
                 decoration: const InputDecoration(labelText: 'Age'),
                 keyboardType: TextInputType.number,
-                onChanged: (value) => _formKey.currentState!.validate(),
+                autovalidateMode: AutovalidateMode.onUserInteraction,
               ),
               SizedBox(height: 20),
               ElevatedButton(
@@ -89,5 +60,17 @@ class _UserFormState extends State<UserForm> {
         ),
       ),
     );
+  }
+
+  void _addUser() {
+    if (_formKey.currentState!.validate()) {
+      final newUser = User(
+        name: _nameController.text,
+        email: _emailController.text,
+        age: int.parse(_ageController.text),
+      );
+      _firestoreService.addUser(newUser);
+      Navigator.pop(context);  // Form gönderildikten sonra geri dön
+    }
   }
 }
