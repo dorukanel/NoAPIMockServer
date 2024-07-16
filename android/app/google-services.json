@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "665024229237",
+    "project_id": "noapimockserver",
+    "storage_bucket": "noapimockserver.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:665024229237:android:3d4bfd3d42bc5fb7486d3c",
+        "android_client_info": {
+          "package_name": "com.noapimockserver.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAedNDO_7YQse_AYB8sSizWoyBNWiJDenk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
