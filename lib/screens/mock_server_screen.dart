@@ -23,7 +23,7 @@ class _MockServerScreenState extends State<MockServerScreen> {
 
   void _addNewRequest() {
     setState(() {
-      requests.add(Request(method: 'POST', endpoint: ''));
+      requests.add(Request(method: 'POST', endpoint: '',responseCode: null));
       responseBodyControllers.add(TextEditingController());
     });
   }
@@ -100,6 +100,24 @@ class _MockServerScreenState extends State<MockServerScreen> {
       }
     }
   }
+  void _sendDeleteRequest(int index, String path) async {
+    if (path.isNotEmpty) {
+      try {
+        var pathSegments = path.split('/');
+        if (pathSegments.length % 2 == 0) {
+          var docId = pathSegments.removeLast();
+          var collectionPath = pathSegments.join('/');
+          await _firestoreService.deleteDocument(collectionPath, docId);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Document deleted successfully')));
+        } else {
+          await _firestoreService.deleteCollection(path);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Collection deleted successfully')));
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,6 +155,7 @@ class _MockServerScreenState extends State<MockServerScreen> {
                     request: requests[index],
                     responseBodyController: responseBodyControllers[index],
                     onRemove: () => _removeRequest(index),
+                    onDelete: () => _sendDeleteRequest(index, requests[index].endpoint),
                   );
                 },
               ),
@@ -156,6 +175,9 @@ class _MockServerScreenState extends State<MockServerScreen> {
                         _sendGetRequest(i, request.endpoint);
                       } else if (request.method == 'POST') {
                         _sendPostRequest(i, request.endpoint, request.responseBody ?? '');
+                      }
+                      else if(request.method =='DELETE'){
+                        _sendDeleteRequest(i, request.endpoint);
                       }
                     }
                   }

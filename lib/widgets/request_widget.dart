@@ -6,8 +6,14 @@ class RequestWidget extends StatelessWidget {
   final Request request;
   final VoidCallback onRemove;
   final TextEditingController responseBodyController;
-
-  const RequestWidget({super.key, required this.request, required this.onRemove, required this.responseBodyController});
+  final VoidCallback onDelete;
+  const RequestWidget({
+    super.key,
+    required this.request,
+    required this.onRemove,
+    required this.responseBodyController,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,15 +30,16 @@ class RequestWidget extends StatelessWidget {
                     value: request.method,
                     items: ['POST', 'GET', 'PUT', 'DELETE']
                         .map((method) => DropdownMenuItem<String>(
-                      value: method,
-                      child: Text(method),
-                    ))
+                              value: method,
+                              child: Text(method),
+                            ))
                         .toList(),
                     onChanged: (value) {
                       request.method = value!;
                       (context as Element).markNeedsBuild();
                     },
-                    decoration: const InputDecoration(labelText: 'Request Method'),
+                    decoration:
+                        const InputDecoration(labelText: 'Request Method'),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -52,7 +59,9 @@ class RequestWidget extends StatelessWidget {
                 ),
               ],
             ),
-            if (request.method != 'GET')
+            if (request.method != 'GET' &&
+                request.method !=
+                    'DELETE') // such bs never seen before WILL CHANGE
               Column(
                 children: [
                   const SizedBox(height: 8),
@@ -62,20 +71,27 @@ class RequestWidget extends StatelessWidget {
                     onChanged: (value) {
                       request.responseCode = int.parse(value);
                     },
-                    decoration: const InputDecoration(labelText: 'Response Code'),
+                    decoration:
+                        const InputDecoration(labelText: 'Response Code'),
                   ),
                 ],
               ),
             const SizedBox(height: 8),
-            TextFormField(
-              controller: responseBodyController,
-              maxLines: null,
-              onChanged: (value) {
-                request.responseBody = value;
-              },
-              decoration: const InputDecoration(labelText: 'Response Body'),
-              style: const TextStyle(fontSize: 12),
-            ),
+            if (request.method != 'DELETE')
+              TextFormField(
+                controller: responseBodyController,
+                maxLines: null,
+                onChanged: (value) {
+                  request.responseBody = value;
+                },
+                decoration: const InputDecoration(labelText: 'Response Body'),
+                style: const TextStyle(fontSize: 12),
+              ),
+            if (request.method == 'DELETE')
+              ElevatedButton(
+                onPressed: onDelete,
+                child: const Text('Delete Document'),
+              )
           ],
         ),
       ),

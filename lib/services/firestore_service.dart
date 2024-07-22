@@ -52,6 +52,14 @@ class FirestoreService {
   Future<void> createDocument(String collectionPath, Map<String, dynamic> data) async {
     await _db.collection(collectionPath).add(data);
   }
+  Future<void> deleteDocument(String collectionPath, String docId) async {
+    await _db.collection(collectionPath).doc(docId).delete();
+  }
+  Future<void> deleteCollection(String collectionPath) async {
+    var snapshot = await _db.collection(collectionPath).get();
+    for(var doc in snapshot.docs){
+      await doc.reference.delete();
+    }
+  }
 }
-
 
