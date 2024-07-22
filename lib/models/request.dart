@@ -5,6 +5,8 @@ class Request {
   Map<String, dynamic>? queryParams;
   dynamic body;
   String? environment;
+  int? responseCode;  // Optional field for response code
+  String? responseBody;  // Optional field for response body
 
   Request({
     this.uid,
@@ -13,8 +15,11 @@ class Request {
     this.queryParams,
     this.body,
     this.environment,
+    this.responseCode,
+    this.responseBody,
   });
 
+  // Convert a Request instance to a JSON map
   Map<String, dynamic> toJson() {
     final data = {
       'uid': uid,
@@ -23,11 +28,14 @@ class Request {
       'queryParams': queryParams,
       'body': body,
       'environment': environment,
+      'responseCode': responseCode,
+      'responseBody': responseBody,
     };
     return data..removeWhere((key, value) => value == null);
   }
 
-  static Request fromJson(Map<String, dynamic> json) {
+  // Create a Request instance from a JSON map
+  factory Request.fromJson(Map<String, dynamic> json) {
     return Request(
       uid: json['uid'],
       method: json['method'],
@@ -35,23 +43,8 @@ class Request {
       queryParams: json['queryParams'],
       body: json['body'],
       environment: json['environment'],
+      responseCode: json['responseCode'],
+      responseBody: json['responseBody'],
     );
   }
-}
-class RequestConfig {
-  String method;
-  String url;
-  int responseCode;
-  String responseBody;
-  Map<String, dynamic>? queryParams;
-  String? environment;
-
-  RequestConfig({
-    this.method = 'POST',
-    this.url = '',
-    this.responseCode = 200,
-    this.responseBody = '',
-    this.queryParams,
-    this.environment,
-  });
 }

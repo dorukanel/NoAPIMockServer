@@ -11,7 +11,7 @@ class FirestoreService {
 
   Future<List<Request>> getRequests() async {
     var snapshot = await _db.collection('requests').get();
-    return snapshot.docs.map((doc) => Request.fromJson(doc.data())).toList();
+    return snapshot.docs.map((doc) => Request.fromJson(doc.data() as Map<String, dynamic>)).toList();
   }
 
   Future<void> updateRequest(String id, Request request) async {
@@ -28,7 +28,7 @@ class FirestoreService {
 
   Future<List<Response>> getResponses() async {
     var snapshot = await _db.collection('responses').get();
-    return snapshot.docs.map((doc) => Response.fromJson(doc.data())).toList();
+    return snapshot.docs.map((doc) => Response.fromJson(doc.data() as Map<String, dynamic>)).toList();
   }
 
   Future<void> updateResponse(String id, Response response) async {
@@ -48,6 +48,7 @@ class FirestoreService {
     var snapshot = await _db.collection(path).get();
     return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
   }
+
   Future<void> createDocument(String collectionPath, Map<String, dynamic> data) async {
     await _db.collection(collectionPath).add(data);
   }

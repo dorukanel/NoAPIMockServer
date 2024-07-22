@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/request.dart';
 import '../services/firestore_service.dart';
-import '../widgets/request_config_widget.dart';
+import '../widgets/request_widget.dart';
 
 class MockServerScreen extends StatefulWidget {
   @override
@@ -11,26 +11,26 @@ class MockServerScreen extends StatefulWidget {
 
 class _MockServerScreenState extends State<MockServerScreen> {
   final _formKey = GlobalKey<FormState>();
-  final List<RequestConfig> requestConfigs = [];
+  final List<Request> requests = [];
   final List<TextEditingController> responseBodyControllers = [];
   final FirestoreService _firestoreService = FirestoreService();
 
   @override
   void initState() {
     super.initState();
-    _addNewRequestConfig();
+    _addNewRequest();
   }
 
-  void _addNewRequestConfig() {
+  void _addNewRequest() {
     setState(() {
-      requestConfigs.add(RequestConfig());
+      requests.add(Request(method: 'POST', endpoint: ''));
       responseBodyControllers.add(TextEditingController());
     });
   }
 
-  void _removeRequestConfig(int index) {
+  void _removeRequest(int index) {
     setState(() {
-      requestConfigs.removeAt(index);
+      requests.removeAt(index);
       responseBodyControllers.removeAt(index);
     });
   }
@@ -130,19 +130,19 @@ class _MockServerScreenState extends State<MockServerScreen> {
               SizedBox(height: 16),
               ListView.builder(
                 shrinkWrap: true,
-                itemCount: requestConfigs.length,
+                itemCount: requests.length,
                 itemBuilder: (context, index) {
-                  return RequestConfigWidget(
+                  return RequestWidget(
                     key: UniqueKey(),
-                    config: requestConfigs[index],
+                    request: requests[index],
                     responseBodyController: responseBodyControllers[index],
-                    onRemove: () => _removeRequestConfig(index),
+                    onRemove: () => _removeRequest(index),
                   );
                 },
               ),
               SizedBox(height: 16),
               ElevatedButton(
-                onPressed: _addNewRequestConfig,
+                onPressed: _addNewRequest,
                 child: Text('Add Request Configuration'),
               ),
               SizedBox(height: 16),
@@ -150,12 +150,12 @@ class _MockServerScreenState extends State<MockServerScreen> {
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     _formKey.currentState!.save();
-                    for (var i = 0; i < requestConfigs.length; i++) {
-                      var config = requestConfigs[i];
-                      if (config.method == 'GET') {
-                        _sendGetRequest(i, config.url);
-                      } else if (config.method == 'POST') {
-                        _sendPostRequest(i, config.url, config.responseBody);
+                    for (var i = 0; i < requests.length; i++) {
+                      var request = requests[i];
+                      if (request.method == 'GET') {
+                        _sendGetRequest(i, request.endpoint);
+                      } else if (request.method == 'POST') {
+                        _sendPostRequest(i, request.endpoint, request.responseBody ?? '');
                       }
                     }
                   }
