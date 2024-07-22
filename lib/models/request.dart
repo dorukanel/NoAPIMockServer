@@ -38,3 +38,20 @@ class Request {
     );
   }
 }
+class RequestConfig {
+  String method;
+  String url;
+  int responseCode;
+  String responseBody;
+  Map<String, dynamic>? queryParams;
+  String? environment;
+
+  RequestConfig({
+    this.method = 'POST',
+    this.url = '',
+    this.responseCode = 200,
+    this.responseBody = '',
+    this.queryParams,
+    this.environment,
+  });
+}

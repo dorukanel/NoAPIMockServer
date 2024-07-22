@@ -1,9 +1,8 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import '../models/request.dart';
 import '../services/firestore_service.dart';
-
+import '../widgets/request_config_widget.dart';
 
 class MockServerScreen extends StatefulWidget {
   @override
@@ -39,10 +38,8 @@ class _MockServerScreenState extends State<MockServerScreen> {
   void _sendGetRequest(int index, String path) async {
     if (path.isNotEmpty) {
       try {
-        // Split the path to get collection and optional document ID
         var pathSegments = path.split('/');
         if (pathSegments.length % 2 == 0) {
-          // Assume the last segment is a document ID Hasan Hocaya zor valid mi diye
           var docId = pathSegments.removeLast();
           var collectionPath = pathSegments.join('/');
           var document = await _firestoreService.getDocument(collectionPath, docId);
@@ -55,7 +52,6 @@ class _MockServerScreenState extends State<MockServerScreen> {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Document does not exist')));
           }
         } else {
-          // Fetch all documents in the collection
           var collection = await _firestoreService.getCollection(path);
           String formattedJson = const JsonEncoder.withIndent('  ').convert(collection);
           setState(() {
@@ -71,18 +67,14 @@ class _MockServerScreenState extends State<MockServerScreen> {
   void _sendPostRequest(int index, String path, String requestBody) async {
     if (path.isNotEmpty) {
       try {
-        print('Request Body: $requestBody'); // Log the request body
-        // Decode the request body
+        print('Request Body: $requestBody');
         var data = json.decode(requestBody);
-        print('Decoded Data: $data'); // Log the decoded data
-        print('Data Type: ${data.runtimeType}'); // Log the data type
-
+        print('Decoded Data: $data');
+        print('Data Type: ${data.runtimeType}');
         if (data is Map<String, dynamic>) {
-          // If data is a single map, add it to Firestore
           await _firestoreService.createDocument(path, data);
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Document created successfully')));
         } else if (data is List) {
-          // If data is a list, iterate over the list and add each item to Firestore
           for (var item in data) {
             if (item is Map<String, dynamic>) {
               await _firestoreService.createDocument(path, item);
@@ -92,7 +84,7 @@ class _MockServerScreenState extends State<MockServerScreen> {
           }
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Documents created successfully')));
         } else {
-          print('TypeError: Data is not a Map<String, dynamic> or List<Map<String, dynamic>>'); // Log the type error
+          print('TypeError: Data is not a Map<String, dynamic> or List<Map<String, dynamic>>');
           throw TypeError();
         }
       } catch (e) {
@@ -134,7 +126,7 @@ class _MockServerScreenState extends State<MockServerScreen> {
                 child: Text('Select an existing collection'),
               ),
               SizedBox(height: 16),
-              Text('TODO'),
+              Text('Enter the requests you want to mock. Optionally, add a request body by clicking on the (...) icon.'),
               SizedBox(height: 16),
               ListView.builder(
                 shrinkWrap: true,
@@ -182,105 +174,6 @@ class _MockServerScreenState extends State<MockServerScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class RequestConfig {
-  String method;
-  String url;
-  int responseCode;
-  String responseBody;
-  Map<String, dynamic>? queryParams;
-  String? environment;
-
-  RequestConfig({
-    this.method = 'POST',
-    this.url = '',
-    this.responseCode = 200,
-    this.responseBody = '',
-    this.queryParams,
-    this.environment,
-  });
-}
-
-class RequestConfigWidget extends StatelessWidget {
-  final RequestConfig config;
-  final VoidCallback onRemove;
-  final TextEditingController responseBodyController;
-
-  const RequestConfigWidget({super.key, required this.config, required this.onRemove, required this.responseBodyController});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: config.method,
-                    items: ['POST', 'GET', 'PUT', 'DELETE']
-                        .map((method) => DropdownMenuItem<String>(
-                      value: method,
-                      child: Text(method),
-                    ))
-                        .toList(),
-                    onChanged: (value) {
-                      config.method = value!;
-                      (context as Element).markNeedsBuild();
-                    },
-                    decoration: const InputDecoration(labelText: 'Request Method'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextFormField(
-                    initialValue: config.url,
-                    onChanged: (value) {
-                      config.url = value;
-                    },
-                    decoration: const InputDecoration(labelText: 'Request URL'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.remove_circle),
-                  onPressed: onRemove,
-                ),
-              ],
-            ),
-            if (config.method != 'GET')
-              Column(
-                children: [
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    initialValue: config.responseCode.toString(),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      config.responseCode = int.parse(value);
-                    },
-                    decoration: const InputDecoration(labelText: 'Response Code'),
-                  ),
-                ],
-              ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: responseBodyController,
-              maxLines: null,
-              onChanged: (value) {
-                config.responseBody = value;
-              },
-              decoration: const InputDecoration(labelText: 'Response Body'),
-              style: const TextStyle(fontSize: 12),
-            ),
-          ],
         ),
       ),
     );
