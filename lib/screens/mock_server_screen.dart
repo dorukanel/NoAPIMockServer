@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
 import 'dart:convert';
+
+import 'package:flutter/material.dart';
 import '../models/request.dart';
 import '../services/firestore_service.dart';
+
 
 class MockServerScreen extends StatefulWidget {
   @override
@@ -34,16 +36,34 @@ class _MockServerScreenState extends State<MockServerScreen> {
     });
   }
 
-  void _sendGetRequest(int index, String url) async {
-    if (url.isNotEmpty) {
-      var response = await _firestoreService.getRequest(url);
-      if (response.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${response.errorMessage}')));
-      } else {
-        String formattedJson = JsonEncoder.withIndent('  ').convert(response.body);
-        setState(() {
-          responseBodyControllers[index].text = formattedJson;
-        });
+  void _sendGetRequest(int index, String path) async {
+    if (path.isNotEmpty) {
+      try {
+        // Split the path to get collection and optional document ID
+        var pathSegments = path.split('/');
+        if (pathSegments.length % 2 == 0) {
+          // Assume the last segment is a document ID
+          var docId = pathSegments.removeLast();
+          var collectionPath = pathSegments.join('/');
+          var document = await _firestoreService.getDocument(collectionPath, docId);
+          if (document != null) {
+            String formattedJson = const JsonEncoder.withIndent('  ').convert(document);
+            setState(() {
+              responseBodyControllers[index].text = formattedJson;
+            });
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Document does not exist')));
+          }
+        } else {
+          // Fetch all documents in the collection
+          var collection = await _firestoreService.getCollection(path);
+          String formattedJson = const JsonEncoder.withIndent('  ').convert(collection);
+          setState(() {
+            responseBodyControllers[index].text = formattedJson;
+          });
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -52,29 +72,29 @@ class _MockServerScreenState extends State<MockServerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Create a Mock Server'),
+        title: const Text('Create a Mock Server'),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('1. Select collection to mock', style: TextStyle(fontSize: 18)),
-              SizedBox(height: 8),
+              const Text('1. Select collection to mock', style: TextStyle(fontSize: 18)),
+              const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () {},
-                child: Text('Create a new collection'),
+                child: const Text('Create a new collection'),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () {},
-                child: Text('Select an existing collection'),
+                child: const Text('Select an existing collection'),
               ),
-              SizedBox(height: 16),
-              Text('Enter the requests you want to mock. Optionally, add a request body by clicking on the (...) icon.'),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
+              const Text('TODO'),
+              const SizedBox(height: 16),
               ListView.builder(
                 shrinkWrap: true,
                 itemCount: requestConfigs.length,
@@ -87,12 +107,12 @@ class _MockServerScreenState extends State<MockServerScreen> {
                   );
                 },
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _addNewRequestConfig,
-                child: Text('Add Request Configuration'),
+                child: const Text('Add Request Configuration'),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
@@ -110,7 +130,7 @@ class _MockServerScreenState extends State<MockServerScreen> {
                           environment: config.environment,
                         );
                         _firestoreService.createRequest(request).then((_) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Request created successfully')));
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request created successfully')));
                         }).catchError((error) {
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to create request: $error')));
                         });
@@ -118,17 +138,17 @@ class _MockServerScreenState extends State<MockServerScreen> {
                     }
                   }
                 },
-                child: Text('Submit Requests'),
+                child: const Text('Submit Requests'),
               ),
-              SizedBox(height: 16),
-              Row(
+              const SizedBox(height: 16),
+              const Row(
                 mainAxisAlignment: MainAxisAlignment.end,
-                children: [
+               /* children: [
                   ElevatedButton(
                     onPressed: () {},
-                    child: Text('Next'),
+                    child: const Text('Next'),
                   ),
-                ],
+                ],*/
               ),
             ],
           ),
@@ -161,14 +181,14 @@ class RequestConfigWidget extends StatelessWidget {
   final VoidCallback onRemove;
   final TextEditingController responseBodyController;
 
-  RequestConfigWidget({Key? key, required this.config, required this.onRemove, required this.responseBodyController}) : super(key: key);
+  const RequestConfigWidget({super.key, required this.config, required this.onRemove, required this.responseBodyController});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       child: Padding(
-        padding: EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
             Row(
@@ -186,22 +206,22 @@ class RequestConfigWidget extends StatelessWidget {
                       config.method = value!;
                       (context as Element).markNeedsBuild();
                     },
-                    decoration: InputDecoration(labelText: 'Request Method'),
+                    decoration: const InputDecoration(labelText: 'Request Method'),
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: TextFormField(
                     initialValue: config.url,
                     onChanged: (value) {
                       config.url = value;
                     },
-                    decoration: InputDecoration(labelText: 'Request URL'),
+                    decoration: const InputDecoration(labelText: 'Request URL'),
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 IconButton(
-                  icon: Icon(Icons.remove_circle),
+                  icon: const Icon(Icons.remove_circle),
                   onPressed: onRemove,
                 ),
               ],
@@ -209,25 +229,26 @@ class RequestConfigWidget extends StatelessWidget {
             if (config.method != 'GET')
               Column(
                 children: [
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   TextFormField(
                     initialValue: config.responseCode.toString(),
                     keyboardType: TextInputType.number,
                     onChanged: (value) {
                       config.responseCode = int.parse(value);
                     },
-                    decoration: InputDecoration(labelText: 'Response Code'),
+                    decoration: const InputDecoration(labelText: 'Response Code'),
                   ),
                 ],
               ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             TextFormField(
               controller: responseBodyController,
               maxLines: null,
               onChanged: (value) {
                 config.responseBody = value;
               },
-              decoration: InputDecoration(labelText: 'Response Body'),
+              decoration: const InputDecoration(labelText: 'Response Body'),
+              style: const TextStyle(fontSize: 12),
             ),
           ],
         ),

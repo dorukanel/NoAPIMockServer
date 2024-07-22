@@ -1,6 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import '../models/request.dart';
 import '../models/response.dart';
 
@@ -11,9 +9,9 @@ class FirestoreService {
     await _db.collection('requests').add(request.toJson());
   }
 
-  Stream<List<Request>> getRequests() {
-    return _db.collection('requests').snapshots().map((snapshot) =>
-        snapshot.docs.map((doc) => Request.fromJson(doc.data())).toList());
+  Future<List<Request>> getRequests() async {
+    var snapshot = await _db.collection('requests').get();
+    return snapshot.docs.map((doc) => Request.fromJson(doc.data())).toList();
   }
 
   Future<void> updateRequest(String id, Request request) async {
@@ -28,9 +26,9 @@ class FirestoreService {
     await _db.collection('responses').add(response.toJson());
   }
 
-  Stream<List<Response>> getResponses() {
-    return _db.collection('responses').snapshots().map((snapshot) =>
-        snapshot.docs.map((doc) => Response.fromJson(doc.data())).toList());
+  Future<List<Response>> getResponses() async {
+    var snapshot = await _db.collection('responses').get();
+    return snapshot.docs.map((doc) => Response.fromJson(doc.data())).toList();
   }
 
   Future<void> updateResponse(String id, Response response) async {
@@ -41,27 +39,15 @@ class FirestoreService {
     await _db.collection('responses').doc(id).delete();
   }
 
-  Future<Response> getRequest(String url) async {
-    try {
-      final response = await http.get(Uri.parse(url));
+  Future<Map<String, dynamic>?> getDocument(String collectionPath, String docId) async {
+    var doc = await _db.collection(collectionPath).doc(docId).get();
+    return doc.exists ? doc.data() : null;
+  }
 
-      if (response.statusCode == 200) {
-        return Response(
-          statusCode: response.statusCode,
-          body: json.decode(response.body),
-          headers: response.headers,
-        );
-      } else {
-        return Response(
-          statusCode: response.statusCode,
-          errorMessage: 'Failed to load document',
-        );
-      }
-    } catch (e) {
-      return Response(
-        statusCode: 500,
-        errorMessage: e.toString(),
-      );
-    }
+  Future<List<Map<String, dynamic>>> getCollection(String path) async {
+    var snapshot = await _db.collection(path).get();
+    return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
   }
 }
+
+
