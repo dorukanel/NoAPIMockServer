@@ -42,7 +42,7 @@ class _MockServerScreenState extends State<MockServerScreen> {
         // Split the path to get collection and optional document ID
         var pathSegments = path.split('/');
         if (pathSegments.length % 2 == 0) {
-          // Assume the last segment is a document ID
+          // Assume the last segment is a document ID Hasan Hocaya zor valid mi diye
           var docId = pathSegments.removeLast();
           var collectionPath = pathSegments.join('/');
           var document = await _firestoreService.getDocument(collectionPath, docId);
@@ -68,33 +68,74 @@ class _MockServerScreenState extends State<MockServerScreen> {
     }
   }
 
+  void _sendPostRequest(int index, String path, String requestBody) async {
+    if (path.isNotEmpty) {
+      try {
+        print('Request Body: $requestBody'); // Log the request body
+        // Decode the request body
+        var data = json.decode(requestBody);
+        print('Decoded Data: $data'); // Log the decoded data
+        print('Data Type: ${data.runtimeType}'); // Log the data type
+
+        if (data is Map<String, dynamic>) {
+          // If data is a single map, add it to Firestore
+          await _firestoreService.createDocument(path, data);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Document created successfully')));
+        } else if (data is List) {
+          // If data is a list, iterate over the list and add each item to Firestore
+          for (var item in data) {
+            if (item is Map<String, dynamic>) {
+              await _firestoreService.createDocument(path, item);
+            } else {
+              throw TypeError();
+            }
+          }
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Documents created successfully')));
+        } else {
+          print('TypeError: Data is not a Map<String, dynamic> or List<Map<String, dynamic>>'); // Log the type error
+          throw TypeError();
+        }
+      } catch (e) {
+        String errorMessage = 'An error occurred';
+        if (e is FormatException) {
+          errorMessage = 'Invalid JSON format: ${e.message}';
+        } else if (e is TypeError) {
+          errorMessage = 'Invalid data type: Request body must be a JSON object or an array of JSON objects';
+        } else {
+          errorMessage = 'Error: $e';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create a Mock Server'),
+        title: Text('Create a Mock Server'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('1. Select collection to mock', style: TextStyle(fontSize: 18)),
-              const SizedBox(height: 8),
+              Text('1. Select collection to mock', style: TextStyle(fontSize: 18)),
+              SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () {},
-                child: const Text('Create a new collection'),
+                child: Text('Create a new collection'),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () {},
-                child: const Text('Select an existing collection'),
+                child: Text('Select an existing collection'),
               ),
-              const SizedBox(height: 16),
-              const Text('TODO'),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
+              Text('TODO'),
+              SizedBox(height: 16),
               ListView.builder(
                 shrinkWrap: true,
                 itemCount: requestConfigs.length,
@@ -107,12 +148,12 @@ class _MockServerScreenState extends State<MockServerScreen> {
                   );
                 },
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _addNewRequestConfig,
-                child: const Text('Add Request Configuration'),
+                child: Text('Add Request Configuration'),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
@@ -121,34 +162,23 @@ class _MockServerScreenState extends State<MockServerScreen> {
                       var config = requestConfigs[i];
                       if (config.method == 'GET') {
                         _sendGetRequest(i, config.url);
-                      } else {
-                        Request request = Request(
-                          method: config.method,
-                          endpoint: config.url,
-                          queryParams: config.queryParams,
-                          body: config.responseBody,
-                          environment: config.environment,
-                        );
-                        _firestoreService.createRequest(request).then((_) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request created successfully')));
-                        }).catchError((error) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to create request: $error')));
-                        });
+                      } else if (config.method == 'POST') {
+                        _sendPostRequest(i, config.url, config.responseBody);
                       }
                     }
                   }
                 },
-                child: const Text('Submit Requests'),
+                child: Text('Submit Requests'),
               ),
-              const SizedBox(height: 16),
-              const Row(
+              SizedBox(height: 16),
+              Row(
                 mainAxisAlignment: MainAxisAlignment.end,
-               /* children: [
+                children: [
                   ElevatedButton(
                     onPressed: () {},
-                    child: const Text('Next'),
+                    child: Text('Next'),
                   ),
-                ],*/
+                ],
               ),
             ],
           ),

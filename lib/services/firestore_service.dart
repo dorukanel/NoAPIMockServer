@@ -48,6 +48,9 @@ class FirestoreService {
     var snapshot = await _db.collection(path).get();
     return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
   }
+  Future<void> createDocument(String collectionPath, Map<String, dynamic> data) async {
+    await _db.collection(collectionPath).add(data);
+  }
 }
 
 
