@@ -5,7 +5,7 @@ class Request {
   Map<String, dynamic>? queryParams;
   dynamic body;
   String? environment;
-  int? responseCode;  // Optional field for response code
+  int? responseCode;  // Optional field for response code          TODO statusCode
   String? responseBody;  // Optional field for response body
 
   Request({

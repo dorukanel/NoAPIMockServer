@@ -1,15 +1,37 @@
-// istenilen veri modeline göre güncellenecektir, şimdilik bir örnek olsun diye böyle yaptım
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class User {
-  final String name;
-  final String email;
+class UserModel {
+  String uid;
+  String email;
+  String role;
+  Timestamp createdAt;
+  Timestamp updatedAt;
 
-  User({required this.name, required this.email});
+  UserModel({
+    required this.uid,
+    required this.email,
+    required this.role,
+    required this.createdAt,
+    required this.updatedAt,
+  });
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
-      'name': name,
+      'uid': uid,
       'email': email,
+      'role': role,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
     };
+  }
+
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    return UserModel(
+      uid: json['uid'],
+      email: json['email'],
+      role: json['role'],
+      createdAt: json['created_at'],
+      updatedAt: json['updated_at'],
+    );
   }
 }
