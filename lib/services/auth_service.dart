@@ -1,12 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
-import '../models/user.dart';
+import '../models/user_model.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final Uuid _uuid = Uuid();
+  final Uuid _uuid = const Uuid();
 
   Future<UserModel?> signUp(String email, String password) async {
     try {

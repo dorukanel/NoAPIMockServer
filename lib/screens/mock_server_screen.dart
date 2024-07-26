@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../models/request.dart';
+import 'package:uuid/uuid.dart';
+import '../models/mock_server_model.dart';
+import '../models/request_model.dart';
 import '../services/firestore_service.dart';
 import '../widgets/request_widget.dart';
-import '../services/mock_data_service.dart';
+import '../widgets/add_mock_data_dialog.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MockServerScreen extends StatefulWidget {
   @override
@@ -12,10 +15,10 @@ class MockServerScreen extends StatefulWidget {
 
 class _MockServerScreenState extends State<MockServerScreen> {
   final _formKey = GlobalKey<FormState>();
-  final List<Request> requests = [];
+  final List<RequestModel> requests = [];
   final List<TextEditingController> responseBodyControllers = [];
   final FirestoreService _firestoreService = FirestoreService();
-  final MockDataService _mockDataService = MockDataService();
+  final Uuid _uuid = Uuid();
 
   @override
   void initState() {
@@ -25,7 +28,19 @@ class _MockServerScreenState extends State<MockServerScreen> {
 
   void _addNewRequest() {
     setState(() {
-      requests.add(Request(method: 'POST', endpoint: '', responseCode: null));
+      requests.add(RequestModel(
+        uid: '',
+        requestName: '',
+        url: '',
+        method: 'GET',
+        body: '',
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+        response: {
+          'responseStatusCode': 200,
+          'body': '',
+        },
+      ));
       responseBodyControllers.add(TextEditingController());
     });
   }
@@ -40,29 +55,59 @@ class _MockServerScreenState extends State<MockServerScreen> {
   void _sendGetRequest(int index, String path) async {
     if (path.isNotEmpty) {
       try {
-        // Parse the URL to extract the collection and document ID
+        print("Received request for path: $path");
         Uri uri = Uri.parse(path);
         List<String> segments = uri.pathSegments;
 
-        if (segments.isNotEmpty) {
-          String collection = segments[0];
-          String? docId = segments.length > 1 ? segments[1] : null;
+        if (segments.length >= 2 && segments[0] == 'mockServers') {
+          String mockServerId = segments[1];
 
-          if (docId != null) {
-            var document = await _mockDataService.getDocument(collection, docId);
-            setState(() {
-              responseBodyControllers[index].text = jsonEncode(document);
-            });
+          // If the URL has three segments, we treat the last segment as the collection name
+          if (segments.length == 3) {
+            String collectionName = segments[2];
+            var collectionData = await _firestoreService.getCollection('mockServers/$mockServerId/$collectionName');
+            if (collectionData.isNotEmpty) {
+              setState(() {
+                responseBodyControllers[index].text = jsonEncode(collectionData);
+                requests[index].response['responseStatusCode'] = 200;
+              });
+            } else {
+              setState(() {
+                responseBodyControllers[index].text = '404 Not Found';
+                requests[index].response['responseStatusCode'] = 404;
+              });
+            }
+          } else if (segments.length == 4) {
+            String collectionName = segments[2];
+            String docId = segments[3];
+            var document = await _firestoreService.getDocument('mockServers/$mockServerId/$collectionName', docId);
+            if (document != null) {
+              setState(() {
+                responseBodyControllers[index].text = jsonEncode(document);
+                requests[index].response['responseStatusCode'] = 200;
+              });
+            } else {
+              setState(() {
+                responseBodyControllers[index].text = '404 Not Found';
+                requests[index].response['responseStatusCode'] = 404;
+              });
+            }
           } else {
-            var collectionData = await _mockDataService.getCollection(collection);
+            print("Invalid URL structure");
             setState(() {
-              responseBodyControllers[index].text = jsonEncode(collectionData);
+              responseBodyControllers[index].text = '404 Not Found';
+              requests[index].response['responseStatusCode'] = 404;
             });
           }
         } else {
-          throw Exception('Invalid URL structure');
+          print("Invalid URL structure");
+          setState(() {
+            responseBodyControllers[index].text = '404 Not Found';
+            requests[index].response['responseStatusCode'] = 404;
+          });
         }
       } catch (e) {
+        print("Error: $e");
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
@@ -74,6 +119,15 @@ class _MockServerScreenState extends State<MockServerScreen> {
 
   void _sendDeleteRequest(int index, String path) async {
     // Implement DELETE request logic if necessary
+  }
+
+  void _openAddMockDataDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AddMockDataDialog(firestoreService: _firestoreService);
+      },
+    );
   }
 
   @override
@@ -92,13 +146,8 @@ class _MockServerScreenState extends State<MockServerScreen> {
               Text('1. Select collection to mock', style: TextStyle(fontSize: 18)),
               SizedBox(height: 8),
               ElevatedButton(
-                onPressed: () {},
-                child: Text('Create a new collection'),
-              ),
-              SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: () {},
-                child: Text('Select an existing collection'),
+                onPressed: _openAddMockDataDialog,
+                child: Text('Add Mock Data'),
               ),
               SizedBox(height: 16),
               Text('Enter the requests you want to mock. Optionally, add a request body by clicking on the (...) icon.'),
@@ -112,7 +161,7 @@ class _MockServerScreenState extends State<MockServerScreen> {
                     request: requests[index],
                     responseBodyController: responseBodyControllers[index],
                     onRemove: () => _removeRequest(index),
-                    onDelete: () => _sendDeleteRequest(index, requests[index].endpoint),
+                    onDelete: () => _sendDeleteRequest(index, requests[index].url),
                   );
                 },
               ),
@@ -129,11 +178,11 @@ class _MockServerScreenState extends State<MockServerScreen> {
                     for (var i = 0; i < requests.length; i++) {
                       var request = requests[i];
                       if (request.method == 'GET') {
-                        _sendGetRequest(i, request.endpoint);
+                        _sendGetRequest(i, request.url);
                       } else if (request.method == 'POST') {
-                        _sendPostRequest(i, request.endpoint, request.responseBody ?? '');
+                        _sendPostRequest(i, request.url, request.body);
                       } else if (request.method == 'DELETE') {
-                        _sendDeleteRequest(i, request.endpoint);
+                        _sendDeleteRequest(i, request.url);
                       }
                     }
                   }

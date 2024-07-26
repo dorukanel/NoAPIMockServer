@@ -20,8 +20,8 @@ class UserModel {
       'uid': uid,
       'email': email,
       'role': role,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
+      'created_at': createdAt.toDate().toIso8601String(),
+      'updated_at': updatedAt.toDate().toIso8601String(),
     };
   }
 
@@ -30,8 +30,8 @@ class UserModel {
       uid: json['uid'],
       email: json['email'],
       role: json['role'],
-      createdAt: json['created_at'],
-      updatedAt: json['updated_at'],
+      createdAt: Timestamp.fromDate(DateTime.parse(json['created_at'])),
+      updatedAt: Timestamp.fromDate(DateTime.parse(json['updated_at'])),
     );
   }
 }

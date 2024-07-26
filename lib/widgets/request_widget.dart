@@ -1,12 +1,12 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import '../models/request.dart';
+import '../models/request_model.dart';
 
 class RequestWidget extends StatelessWidget {
-  final Request request;
+  final RequestModel request;
   final VoidCallback onRemove;
   final TextEditingController responseBodyController;
   final VoidCallback onDelete;
+
   const RequestWidget({
     super.key,
     required this.request,
@@ -30,24 +30,23 @@ class RequestWidget extends StatelessWidget {
                     value: request.method,
                     items: ['POST', 'GET', 'PUT', 'DELETE']
                         .map((method) => DropdownMenuItem<String>(
-                              value: method,
-                              child: Text(method),
-                            ))
+                      value: method,
+                      child: Text(method),
+                    ))
                         .toList(),
                     onChanged: (value) {
                       request.method = value!;
                       (context as Element).markNeedsBuild();
                     },
-                    decoration:
-                        const InputDecoration(labelText: 'Request Method'),
+                    decoration: const InputDecoration(labelText: 'Request Method'),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextFormField(
-                    initialValue: request.endpoint,
+                    initialValue: request.url,
                     onChanged: (value) {
-                      request.endpoint = value;
+                      request.url = value;
                     },
                     decoration: const InputDecoration(labelText: 'Request URL'),
                   ),
@@ -59,30 +58,38 @@ class RequestWidget extends StatelessWidget {
                 ),
               ],
             ),
-            if (request.method != 'GET' &&
-                request.method !=
-                    'DELETE') // such bs never seen before WILL CHANGE
-              Column(
-                children: [
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    initialValue: request.responseCode.toString(),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      request.responseCode = int.parse(value);
-                    },
-                    decoration:
-                        const InputDecoration(labelText: 'Response Code'),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (request.method != 'GET' && request.method != 'DELETE')
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: request.response['responseStatusCode']?.toString(),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        request.response['responseStatusCode'] = int.parse(value);
+                      },
+                      decoration: const InputDecoration(labelText: 'Response Code'),
+                    ),
                   ),
-                ],
-              ),
+                if (request.method == 'GET' || request.method == 'DELETE')
+                  ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: request.response['responseStatusCode'] == 200 ? Colors.green : Colors.red,
+                    ),
+                    child: Text('${request.response['responseStatusCode']}'),
+                  ),
+              ],
+            ),
             const SizedBox(height: 8),
             if (request.method != 'DELETE')
               TextFormField(
                 controller: responseBodyController,
                 maxLines: null,
                 onChanged: (value) {
-                  request.responseBody = value;
+                  request.response['body'] = value;
                 },
                 decoration: const InputDecoration(labelText: 'Response Body'),
                 style: const TextStyle(fontSize: 12),

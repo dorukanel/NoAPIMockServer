@@ -1,65 +1,65 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/request.dart';
-import '../models/response.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  Future<void> createRequest(Request request) async {
-    await _db.collection('requests').add(request.toJson());
+  Future<void> createMockServer(String uid, String mockServerName, String ownerId) async {
+    await _db.collection('mockServers').doc(uid).set({
+      'uid': uid,
+      'mockServerName': mockServerName,
+      'ownerId': ownerId,
+      'members': [ownerId],
+      'createdAt': Timestamp.now(),
+      'updatedAt': Timestamp.now(),
+    });
   }
 
-  Future<List<Request>> getRequests() async {
-    var snapshot = await _db.collection('requests').get();
-    return snapshot.docs.map((doc) => Request.fromJson(doc.data() as Map<String, dynamic>)).toList();
-  }
-
-  Future<void> updateRequest(String id, Request request) async {
-    await _db.collection('requests').doc(id).update(request.toJson());
-  }
-
-  Future<void> deleteRequest(String id) async {
-    await _db.collection('requests').doc(id).delete();
-  }
-
-  Future<void> createResponse(Response response) async {
-    await _db.collection('responses').add(response.toJson());
-  }
-
-  Future<List<Response>> getResponses() async {
-    var snapshot = await _db.collection('responses').get();
-    return snapshot.docs.map((doc) => Response.fromJson(doc.data() as Map<String, dynamic>)).toList();
-  }
-
-  Future<void> updateResponse(String id, Response response) async {
-    await _db.collection('responses').doc(id).update(response.toJson());
-  }
-
-  Future<void> deleteResponse(String id) async {
-    await _db.collection('responses').doc(id).delete();
+  Future<void> addMockData(String mockServerId, String mockDataName, List<Map<String, dynamic>> mockData) async {
+    var batch = _db.batch();
+    for (var data in mockData) {
+      var docRef = _db.collection('mockServers').doc(mockServerId).collection(mockDataName).doc();
+      batch.set(docRef, data);
+    }
+    await batch.commit();
   }
 
   Future<Map<String, dynamic>?> getDocument(String collectionPath, String docId) async {
+    print("Fetching document from path: $collectionPath/$docId");
     var doc = await _db.collection(collectionPath).doc(docId).get();
-    return doc.exists ? doc.data() : null;
+    return _convertDocumentToJson(doc);
   }
 
-  Future<List<Map<String, dynamic>>> getCollection(String path) async {
-    var snapshot = await _db.collection(path).get();
-    return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+  Future<List<Map<String, dynamic>>> getCollection(String collectionPath) async {
+    print("Fetching collection from path: $collectionPath");
+    var snapshot = await _db.collection(collectionPath).get();
+    return snapshot.docs.map((doc) => _convertDocumentToJson(doc)!).toList();
   }
 
   Future<void> createDocument(String collectionPath, Map<String, dynamic> data) async {
     await _db.collection(collectionPath).add(data);
   }
+
   Future<void> deleteDocument(String collectionPath, String docId) async {
     await _db.collection(collectionPath).doc(docId).delete();
   }
+
   Future<void> deleteCollection(String collectionPath) async {
     var snapshot = await _db.collection(collectionPath).get();
-    for(var doc in snapshot.docs){
+    for (var doc in snapshot.docs) {
       await doc.reference.delete();
     }
   }
-}
 
+  Map<String, dynamic>? _convertDocumentToJson(DocumentSnapshot doc) {
+    if (!doc.exists) return null;
+    var data = doc.data() as Map<String, dynamic>;
+
+    data.forEach((key, value) {
+      if (value is Timestamp) {
+        data[key] = value.toDate().toIso8601String();
+      }
+    });
+
+    return data;
+  }
+}
