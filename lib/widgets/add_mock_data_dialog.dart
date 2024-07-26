@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:uuid/uuid.dart';
+import '../models/request_model.dart';
 import '../services/firestore_service.dart';
 
 class AddMockDataDialog extends StatefulWidget {
@@ -17,6 +20,7 @@ class _AddMockDataDialogState extends State<AddMockDataDialog> {
   final _workspaceIdController = TextEditingController();
   final _mockDataNameController = TextEditingController();
   final _jsonController = TextEditingController();
+  final Uuid _uuid = Uuid();
 
   void _addMockData() async {
     String workspaceId = _workspaceIdController.text;
@@ -29,6 +33,23 @@ class _AddMockDataDialogState extends State<AddMockDataDialog> {
         List<Map<String, dynamic>> mockData = List<Map<String, dynamic>>.from(data);
 
         await widget.firestoreService.addMockData(workspaceId, mockDataName, mockData);
+
+        // Adding a request to the 'requests' collection
+        RequestModel request = RequestModel(
+          uid: _uuid.v4(),
+          requestName: mockDataName,
+          url: '$mockDataName/',
+          method: 'GET',
+          body: '',
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          response: {
+            'responseStatusCode': 200,
+            'body': jsonEncode(mockData),
+          },
+        );
+        await widget.firestoreService.createRequest(workspaceId, request);
+
         Navigator.of(context).pop();
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));

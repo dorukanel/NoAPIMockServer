@@ -52,12 +52,23 @@ class _MockServerScreenState extends State<MockServerScreen> {
     });
   }
 
+  Future<void> _logRequest(String mockServerId, RequestModel request) async {
+    await _firestoreService.createRequest(mockServerId, request);
+  }
+
   void _sendGetRequest(int index, String path) async {
     if (path.isNotEmpty) {
       try {
         print("Received request for path: $path");
         Uri uri = Uri.parse(path);
         List<String> segments = uri.pathSegments;
+
+        RequestModel request = requests[index];
+        request.uid = _uuid.v4();
+        request.url = path;
+        request.method = 'GET';
+        request.createdAt = Timestamp.now();
+        request.updatedAt = Timestamp.now();
 
         if (segments.length >= 2 && segments[0] == 'mockServers') {
           String mockServerId = segments[1];
@@ -69,12 +80,13 @@ class _MockServerScreenState extends State<MockServerScreen> {
             if (collectionData.isNotEmpty) {
               setState(() {
                 responseBodyControllers[index].text = jsonEncode(collectionData);
-                requests[index].response['responseStatusCode'] = 200;
+                request.response['responseStatusCode'] = 200;
+                request.response['body'] = jsonEncode(collectionData);
               });
             } else {
               setState(() {
                 responseBodyControllers[index].text = '404 Not Found';
-                requests[index].response['responseStatusCode'] = 404;
+                request.response['responseStatusCode'] = 404;
               });
             }
           } else if (segments.length == 4) {
@@ -84,26 +96,29 @@ class _MockServerScreenState extends State<MockServerScreen> {
             if (document != null) {
               setState(() {
                 responseBodyControllers[index].text = jsonEncode(document);
-                requests[index].response['responseStatusCode'] = 200;
+                request.response['responseStatusCode'] = 200;
+                request.response['body'] = jsonEncode(document);
               });
             } else {
               setState(() {
                 responseBodyControllers[index].text = '404 Not Found';
-                requests[index].response['responseStatusCode'] = 404;
+                request.response['responseStatusCode'] = 404;
               });
             }
           } else {
             print("Invalid URL structure");
             setState(() {
               responseBodyControllers[index].text = '404 Not Found';
-              requests[index].response['responseStatusCode'] = 404;
+              request.response['responseStatusCode'] = 404;
             });
           }
+
+          await _logRequest(mockServerId, request);
         } else {
           print("Invalid URL structure");
           setState(() {
             responseBodyControllers[index].text = '404 Not Found';
-            requests[index].response['responseStatusCode'] = 404;
+            request.response['responseStatusCode'] = 404;
           });
         }
       } catch (e) {

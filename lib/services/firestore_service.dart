@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/request_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -12,6 +13,10 @@ class FirestoreService {
       'createdAt': Timestamp.now(),
       'updatedAt': Timestamp.now(),
     });
+  }
+
+  Future<void> createRequest(String mockServerId, RequestModel request) async {
+    await _db.collection('mockServers').doc(mockServerId).collection('requests').doc(request.uid).set(request.toJson());
   }
 
   Future<void> addMockData(String mockServerId, String mockDataName, List<Map<String, dynamic>> mockData) async {
