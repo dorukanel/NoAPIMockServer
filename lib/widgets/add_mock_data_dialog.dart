@@ -32,7 +32,7 @@ class _AddMockDataDialogState extends State<AddMockDataDialog> {
         List<dynamic> data = json.decode(jsonData);
         List<Map<String, dynamic>> mockData = List<Map<String, dynamic>>.from(data);
 
-        await widget.firestoreService.addMockData(workspaceId, mockDataName, mockData);
+       // await widget.firestoreService.addMockData(workspaceId, mockDataName, mockData);
 
         // Adding a request to the 'requests' collection
         RequestModel request = RequestModel(

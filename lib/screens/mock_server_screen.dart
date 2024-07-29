@@ -89,6 +89,9 @@ class _MockServerScreenState extends State<MockServerScreen> {
         print("Received request for path: $path");
         Uri uri = Uri.parse(path);
         List<String> segments = uri.pathSegments;
+        Map<String, dynamic> queryParams = uri.queryParameters;
+
+        print("Query parameters: $queryParams");
 
         if (selectedRequest == null) {
           print("Error: selectedRequest is null");
@@ -101,14 +104,13 @@ class _MockServerScreenState extends State<MockServerScreen> {
         request.method = 'GET';
         request.createdAt = Timestamp.now();
         request.updatedAt = Timestamp.now();
+        request.queryParams = queryParams;
 
-        // Ensure the response map is initialized
         if (request.response == null) {
           request.response = {'responseStatusCode': 200, 'body': ''};
         }
 
         if (uri.host.isNotEmpty && uri.host != 'localhost') {
-          // If the URL is an external API
           var response = await http.get(uri);
           setState(() {
             request.response['responseStatusCode'] = response.statusCode;
@@ -116,35 +118,33 @@ class _MockServerScreenState extends State<MockServerScreen> {
             selectedResponseBodyController.text = response.body;
           });
         } else {
-          // Check if the request already exists in saved requests
           RequestModel? existingRequest = savedRequests.firstWhereOrNull(
-                (savedRequest) => savedRequest.url == path,
+                (savedRequest) => savedRequest.url == uri.path,
           );
 
           print("Existing request: $existingRequest");
 
           if (existingRequest != null) {
-            // Use the existing request's response
             setState(() {
               print("Using existing request response");
               selectedResponseBodyController.text = existingRequest.response['body'];
               request.response['responseStatusCode'] = existingRequest.response['responseStatusCode'];
-              request.response['body'] = existingRequest.body;
+              request.response['body'] = existingRequest.response['body'];
             });
           } else {
             if (segments.length >= 2 && segments[0] == 'mockServers') {
               String mockServerId = segments[1];
 
-              // If the URL has three segments, we treat the last segment as the collection name
               if (segments.length == 3) {
                 String collectionName = segments[2];
-                var collectionData = await _firestoreService.getCollection('mockServers/$mockServerId/$collectionName');
+                var collectionData = await _firestoreService.getCollection('mockServers/$mockServerId/requests', queryParams);
                 print("Collection data: $collectionData");
                 if (collectionData.isNotEmpty) {
+                  var responseBodies = collectionData.map((data) => data['body']).toList();
                   setState(() {
-                    selectedResponseBodyController.text = jsonEncode(collectionData);
+                    selectedResponseBodyController.text = jsonEncode(responseBodies);
                     request.response['responseStatusCode'] = 200;
-                    request.response['body'] = jsonEncode(collectionData);
+                    request.response['body'] = jsonEncode(responseBodies);
                   });
                 } else {
                   setState(() {
@@ -155,13 +155,13 @@ class _MockServerScreenState extends State<MockServerScreen> {
               } else if (segments.length == 4) {
                 String collectionName = segments[2];
                 String docId = segments[3];
-                var document = await _firestoreService.getDocument('mockServers/$mockServerId/$collectionName', docId);
+                var document = await _firestoreService.getDocument('mockServers/$mockServerId/requests', docId);
                 print("Document data: $document");
                 if (document != null) {
                   setState(() {
-                    selectedResponseBodyController.text = jsonEncode(document);
+                    selectedResponseBodyController.text = jsonEncode(document['body']);
                     request.response['responseStatusCode'] = 200;
-                    request.response['body'] = jsonEncode(document);
+                    request.response['body'] = jsonEncode(document['body']);
                   });
                 } else {
                   setState(() {
@@ -178,7 +178,7 @@ class _MockServerScreenState extends State<MockServerScreen> {
               }
 
               await _logRequest(mockServerId, request);
-              _fetchSavedRequests(); // Refresh the saved requests
+              _fetchSavedRequests();
             } else {
               print("Invalid URL structure");
               setState(() {
@@ -196,6 +196,9 @@ class _MockServerScreenState extends State<MockServerScreen> {
     }
   }
 
+
+
+
   void _sendPostRequest(int index, String path, String requestBody) async {
     // Implement POST request logic if necessary
   }
@@ -207,7 +210,7 @@ class _MockServerScreenState extends State<MockServerScreen> {
   void _selectRequest(RequestModel request) {
     setState(() {
       selectedRequest = request;
-      selectedResponseBodyController.clear(); // Clear the response body when selecting a request
+      selectedResponseBodyController.clear();
       print("Selected request: ${request.requestName}");
     });
   }
@@ -220,7 +223,6 @@ class _MockServerScreenState extends State<MockServerScreen> {
       ),
       body: Row(
         children: [
-          // Sidebar for saved requests
           Container(
             width: 250,
             child: ListView.builder(
@@ -234,7 +236,6 @@ class _MockServerScreenState extends State<MockServerScreen> {
               },
             ),
           ),
-          // Main content area for request details
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.all(16.0),

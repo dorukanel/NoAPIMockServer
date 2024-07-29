@@ -28,7 +28,7 @@ class RequestWidget extends StatelessWidget {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: request.method,
-                    items: ['GET', 'POST', 'PUT', 'DELETE']
+                    items: ['POST', 'GET', 'PUT', 'DELETE']
                         .map((method) => DropdownMenuItem<String>(
                       value: method,
                       child: Text(method),
@@ -38,7 +38,8 @@ class RequestWidget extends StatelessWidget {
                       request.method = value!;
                       (context as Element).markNeedsBuild();
                     },
-                    decoration: const InputDecoration(labelText: 'Request Method'),
+                    decoration:
+                    const InputDecoration(labelText: 'Request Method'),
                   ),
                 ),
                 const SizedBox(width: 8),
