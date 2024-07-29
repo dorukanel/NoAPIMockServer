@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'package:http/http.dart' as http;
 import '../models/request_model.dart';
 import '../services/firestore_service.dart';
 import '../widgets/request_widget.dart';
@@ -51,6 +52,8 @@ class _MockServerScreenState extends State<MockServerScreen> {
           'responseStatusCode': 200,
           'body': '',
         },
+        headers: {},
+        queryParams: {},
       );
       requests.add(newRequest);
       responseBodyControllers.add(TextEditingController());
@@ -80,7 +83,7 @@ class _MockServerScreenState extends State<MockServerScreen> {
     await _firestoreService.createRequest(mockServerId, request);
   }
 
-  void _sendGetRequest(String path) async {
+  Future<void> _sendGetRequest(String path) async {
     if (path.isNotEmpty) {
       try {
         print("Received request for path: $path");
@@ -104,59 +107,78 @@ class _MockServerScreenState extends State<MockServerScreen> {
           request.response = {'responseStatusCode': 200, 'body': ''};
         }
 
-        // Check if the request already exists in saved requests
-        RequestModel? existingRequest = savedRequests.firstWhereOrNull(
-              (savedRequest) => savedRequest.url == path,
-        );
-
-        print("Existing request: $existingRequest");
-
-        if (existingRequest != null) {
-          // Use the existing request's response
+        if (uri.host.isNotEmpty && uri.host != 'localhost') {
+          // If the URL is an external API
+          var response = await http.get(uri);
           setState(() {
-            print("Using existing request response");
-            selectedResponseBodyController.text = existingRequest.response['body'];
-            request.response['responseStatusCode'] = existingRequest.response['responseStatusCode'];
-            request.response['body'] = existingRequest.body;
+            request.response['responseStatusCode'] = response.statusCode;
+            request.response['body'] = response.body;
+            selectedResponseBodyController.text = response.body;
           });
         } else {
-          if (segments.length >= 2 && segments[0] == 'mockServers') {
-            String mockServerId = segments[1];
+          // Check if the request already exists in saved requests
+          RequestModel? existingRequest = savedRequests.firstWhereOrNull(
+                (savedRequest) => savedRequest.url == path,
+          );
 
-            // If the URL has three segments, we treat the last segment as the collection name
-            if (segments.length == 3) {
-              String collectionName = segments[2];
-              var collectionData = await _firestoreService.getCollection('mockServers/$mockServerId/$collectionName');
-              print("Collection data: $collectionData");
-              if (collectionData.isNotEmpty) {
-                setState(() {
-                  selectedResponseBodyController.text = jsonEncode(collectionData);
-                  request.response['responseStatusCode'] = 200;
-                  request.response['body'] = jsonEncode(collectionData);
-                });
+          print("Existing request: $existingRequest");
+
+          if (existingRequest != null) {
+            // Use the existing request's response
+            setState(() {
+              print("Using existing request response");
+              selectedResponseBodyController.text = existingRequest.response['body'];
+              request.response['responseStatusCode'] = existingRequest.response['responseStatusCode'];
+              request.response['body'] = existingRequest.body;
+            });
+          } else {
+            if (segments.length >= 2 && segments[0] == 'mockServers') {
+              String mockServerId = segments[1];
+
+              // If the URL has three segments, we treat the last segment as the collection name
+              if (segments.length == 3) {
+                String collectionName = segments[2];
+                var collectionData = await _firestoreService.getCollection('mockServers/$mockServerId/$collectionName');
+                print("Collection data: $collectionData");
+                if (collectionData.isNotEmpty) {
+                  setState(() {
+                    selectedResponseBodyController.text = jsonEncode(collectionData);
+                    request.response['responseStatusCode'] = 200;
+                    request.response['body'] = jsonEncode(collectionData);
+                  });
+                } else {
+                  setState(() {
+                    selectedResponseBodyController.text = '404 Not Found';
+                    request.response['responseStatusCode'] = 404;
+                  });
+                }
+              } else if (segments.length == 4) {
+                String collectionName = segments[2];
+                String docId = segments[3];
+                var document = await _firestoreService.getDocument('mockServers/$mockServerId/$collectionName', docId);
+                print("Document data: $document");
+                if (document != null) {
+                  setState(() {
+                    selectedResponseBodyController.text = jsonEncode(document);
+                    request.response['responseStatusCode'] = 200;
+                    request.response['body'] = jsonEncode(document);
+                  });
+                } else {
+                  setState(() {
+                    selectedResponseBodyController.text = '404 Not Found';
+                    request.response['responseStatusCode'] = 404;
+                  });
+                }
               } else {
+                print("Invalid URL structure");
                 setState(() {
                   selectedResponseBodyController.text = '404 Not Found';
                   request.response['responseStatusCode'] = 404;
                 });
               }
-            } else if (segments.length == 4) {
-              String collectionName = segments[2];
-              String docId = segments[3];
-              var document = await _firestoreService.getDocument('mockServers/$mockServerId/$collectionName', docId);
-              print("Document data: $document");
-              if (document != null) {
-                setState(() {
-                  selectedResponseBodyController.text = jsonEncode(document);
-                  request.response['responseStatusCode'] = 200;
-                  request.response['body'] = jsonEncode(document);
-                });
-              } else {
-                setState(() {
-                  selectedResponseBodyController.text = '404 Not Found';
-                  request.response['responseStatusCode'] = 404;
-                });
-              }
+
+              await _logRequest(mockServerId, request);
+              _fetchSavedRequests(); // Refresh the saved requests
             } else {
               print("Invalid URL structure");
               setState(() {
@@ -164,15 +186,6 @@ class _MockServerScreenState extends State<MockServerScreen> {
                 request.response['responseStatusCode'] = 404;
               });
             }
-
-            await _logRequest(mockServerId, request);
-            _fetchSavedRequests(); // Refresh the saved requests
-          } else {
-            print("Invalid URL structure");
-            setState(() {
-              selectedResponseBodyController.text = '404 Not Found';
-              request.response['responseStatusCode'] = 404;
-            });
           }
         }
         print("Response body after request: ${selectedResponseBodyController.text}");

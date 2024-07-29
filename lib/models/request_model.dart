@@ -6,9 +6,12 @@ class RequestModel {
   String url;
   String method;
   String body;
+  Map<String, dynamic> response;
+  Map<String, String>? headers;  // New field for headers
+  Map<String, dynamic>? queryParams;  // New field for query parameters
   Timestamp createdAt;
   Timestamp updatedAt;
-  Map<String, dynamic> response;
+
 
   RequestModel({
     required this.uid,
@@ -19,6 +22,8 @@ class RequestModel {
     required this.createdAt,
     required this.updatedAt,
     required this.response,
+    this.headers,
+    this.queryParams,
   });
 
   Map<String, dynamic> toJson() {
@@ -31,6 +36,8 @@ class RequestModel {
       'created_at': createdAt.toDate().toIso8601String(),
       'updated_at': updatedAt.toDate().toIso8601String(),
       'response': response,
+      'headers': headers,
+      'queryParams': queryParams,
     };
   }
 
@@ -44,6 +51,8 @@ class RequestModel {
       createdAt: json['createdAt'] ?? Timestamp.now(),
       updatedAt: json['updatedAt'] ?? Timestamp.now(),
       response: json['response'] ?? {'responseStatusCode': 200, 'body': ''},
+      headers: Map<String, String>.from(json['headers'] ?? {}),
+      queryParams: Map<String, dynamic>.from(json['queryParams'] ?? {}),
     );
   }
 }
