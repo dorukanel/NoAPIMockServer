@@ -36,14 +36,14 @@ class RequestModel {
 
   factory RequestModel.fromJson(Map<String, dynamic> json) {
     return RequestModel(
-      uid: json['uid'],
-      requestName: json['requestName'],
-      url: json['url'],
-      method: json['method'],
-      body: json['body'],
-      createdAt: Timestamp.fromDate(DateTime.parse(json['created_at'])),
-      updatedAt: Timestamp.fromDate(DateTime.parse(json['updated_at'])),
-      response: Map<String, dynamic>.from(json['response']),
+      uid: json['uid'] ?? '',
+      requestName: json['requestName'] ?? '',
+      url: json['url'] ?? '',
+      method: json['method'] ?? '',
+      body: json['body'] ?? '',
+      createdAt: json['createdAt'] ?? Timestamp.now(),
+      updatedAt: json['updatedAt'] ?? Timestamp.now(),
+      response: json['response'] ?? {'responseStatusCode': 200, 'body': ''},
     );
   }
 }

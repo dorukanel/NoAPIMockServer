@@ -28,7 +28,7 @@ class RequestWidget extends StatelessWidget {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: request.method,
-                    items: ['POST', 'GET', 'PUT', 'DELETE']
+                    items: ['GET', 'POST', 'PUT', 'DELETE']
                         .map((method) => DropdownMenuItem<String>(
                       value: method,
                       child: Text(method),
@@ -59,37 +59,34 @@ class RequestWidget extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (request.method != 'GET' && request.method != 'DELETE')
-                  Expanded(
-                    child: TextFormField(
-                      initialValue: request.response['responseStatusCode']?.toString(),
-                      keyboardType: TextInputType.number,
-                      onChanged: (value) {
-                        request.response['responseStatusCode'] = int.parse(value);
-                      },
-                      decoration: const InputDecoration(labelText: 'Response Code'),
-                    ),
-                  ),
-                if (request.method == 'GET' || request.method == 'DELETE')
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: request.response['responseStatusCode'] == 200 ? Colors.green : Colors.red,
-                    ),
-                    child: Text('${request.response['responseStatusCode']}'),
-                  ),
-              ],
+            TextFormField(
+              initialValue: request.requestName,
+              onChanged: (value) {
+                request.requestName = value;
+              },
+              decoration: const InputDecoration(labelText: 'Request Name'),
             ),
+            if (request.method != 'GET' && request.method != 'DELETE')
+              Column(
+                children: [
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    initialValue: request.response['responseStatusCode'].toString(),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      request.response['responseStatusCode'] = int.parse(value);
+                    },
+                    decoration: const InputDecoration(labelText: 'Response Code'),
+                  ),
+                ],
+              ),
             const SizedBox(height: 8),
             if (request.method != 'DELETE')
               TextFormField(
                 controller: responseBodyController,
                 maxLines: null,
                 onChanged: (value) {
-                  request.response['body'] = value;
+                  request.body = value;
                 },
                 decoration: const InputDecoration(labelText: 'Response Body'),
                 style: const TextStyle(fontSize: 12),

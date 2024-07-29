@@ -19,6 +19,11 @@ class FirestoreService {
     await _db.collection('mockServers').doc(mockServerId).collection('requests').doc(request.uid).set(request.toJson());
   }
 
+  Future<List<RequestModel>> getRequests(String mockServerId) async {
+    var snapshot = await _db.collection('mockServers').doc(mockServerId).collection('requests').get();
+    return snapshot.docs.map((doc) => RequestModel.fromJson(doc.data())).toList();
+  }
+
   Future<void> addMockData(String mockServerId, String mockDataName, List<Map<String, dynamic>> mockData) async {
     var batch = _db.batch();
     for (var data in mockData) {
