@@ -91,7 +91,7 @@ class _MockServerScreenState extends State<MockServerScreen> {
         List<String> segments = uri.pathSegments;
         Map<String, dynamic> queryParams = uri.queryParameters;
 
-        print("Query parameters: $queryParams");
+        print("Query parameters: $queryParams");  // Add debug statement
 
         if (selectedRequest == null) {
           print("Error: selectedRequest is null");
@@ -106,11 +106,13 @@ class _MockServerScreenState extends State<MockServerScreen> {
         request.updatedAt = Timestamp.now();
         request.queryParams = queryParams;
 
+        // Ensure the response map is initialized
         if (request.response == null) {
           request.response = {'responseStatusCode': 200, 'body': ''};
         }
 
         if (uri.host.isNotEmpty && uri.host != 'localhost') {
+          // If the URL is an external API
           var response = await http.get(uri);
           setState(() {
             request.response['responseStatusCode'] = response.statusCode;
@@ -118,33 +120,35 @@ class _MockServerScreenState extends State<MockServerScreen> {
             selectedResponseBodyController.text = response.body;
           });
         } else {
+          // Check if the request already exists in saved requests
           RequestModel? existingRequest = savedRequests.firstWhereOrNull(
-                (savedRequest) => savedRequest.url == uri.path,
+                (savedRequest) => savedRequest.url == uri.toString(),
           );
 
           print("Existing request: $existingRequest");
 
           if (existingRequest != null) {
+            // Use the existing request's response
             setState(() {
               print("Using existing request response");
               selectedResponseBodyController.text = existingRequest.response['body'];
               request.response['responseStatusCode'] = existingRequest.response['responseStatusCode'];
-              request.response['body'] = existingRequest.response['body'];
+              request.response['body'] = existingRequest.body;
             });
           } else {
             if (segments.length >= 2 && segments[0] == 'mockServers') {
               String mockServerId = segments[1];
 
+              // If the URL has three segments, we treat the last segment as the collection name
               if (segments.length == 3) {
                 String collectionName = segments[2];
-                var collectionData = await _firestoreService.getCollection('mockServers/$mockServerId/requests', queryParams);
-                print("Collection data: $collectionData");
+                var collectionData = await _firestoreService.getCollection('mockServers/$mockServerId/$collectionName', request.queryParams);
+                print("Collection data: $collectionData");  // Add debug statement
                 if (collectionData.isNotEmpty) {
-                  var responseBodies = collectionData.map((data) => data['body']).toList();
                   setState(() {
-                    selectedResponseBodyController.text = jsonEncode(responseBodies);
+                    selectedResponseBodyController.text = jsonEncode(collectionData);
                     request.response['responseStatusCode'] = 200;
-                    request.response['body'] = jsonEncode(responseBodies);
+                    request.response['body'] = jsonEncode(collectionData);
                   });
                 } else {
                   setState(() {
@@ -155,13 +159,13 @@ class _MockServerScreenState extends State<MockServerScreen> {
               } else if (segments.length == 4) {
                 String collectionName = segments[2];
                 String docId = segments[3];
-                var document = await _firestoreService.getDocument('mockServers/$mockServerId/requests', docId);
-                print("Document data: $document");
+                var document = await _firestoreService.getDocument('mockServers/$mockServerId/$collectionName', docId);
+                print("Document data: $document");  // Add debug statement
                 if (document != null) {
                   setState(() {
-                    selectedResponseBodyController.text = jsonEncode(document['body']);
+                    selectedResponseBodyController.text = jsonEncode(document);
                     request.response['responseStatusCode'] = 200;
-                    request.response['body'] = jsonEncode(document['body']);
+                    request.response['body'] = jsonEncode(document);
                   });
                 } else {
                   setState(() {
@@ -178,7 +182,7 @@ class _MockServerScreenState extends State<MockServerScreen> {
               }
 
               await _logRequest(mockServerId, request);
-              _fetchSavedRequests();
+              _fetchSavedRequests(); // Refresh the saved requests
             } else {
               print("Invalid URL structure");
               setState(() {
@@ -196,21 +200,200 @@ class _MockServerScreenState extends State<MockServerScreen> {
     }
   }
 
+  Future<void> _sendPostRequest(int index, String path, String requestBody) async {
+    if (path.isNotEmpty) {
+      try {
+        print("Received POST request for path: $path with body: $requestBody");
+        Uri uri = Uri.parse(path);
 
+        if (selectedRequest == null) {
+          print("Error: selectedRequest is null");
+          return;
+        }
 
+        RequestModel request = selectedRequest!;
+        request.uid = _uuid.v4();
+        request.url = path;
+        request.method = 'POST';
+        request.body = requestBody;
+        request.createdAt = Timestamp.now();
+        request.updatedAt = Timestamp.now();
 
-  void _sendPostRequest(int index, String path, String requestBody) async {
-    // Implement POST request logic if necessary
+        // Ensure the response map is initialized
+        if (request.response == null) {
+          request.response = {'responseStatusCode': 200, 'body': ''};
+        }
+
+        if (uri.host.isNotEmpty && uri.host != 'localhost') {
+          // If the URL is an external API
+          var response = await http.post(uri, body: requestBody);
+          setState(() {
+            request.response['responseStatusCode'] = response.statusCode;
+            request.response['body'] = response.body;
+            selectedResponseBodyController.text = response.body;
+          });
+        } else {
+          // Handle POST request logic for local paths
+          // Typically you would save this request data to Firestore or another local operation
+
+          String mockServerId = uri.pathSegments[1];
+
+          // Here you would normally process the POST request
+          // For now, we just log it and update the UI
+
+          setState(() {
+            selectedResponseBodyController.text = '$requestBody';
+            request.response['responseStatusCode'] = 200;
+            request.response['body'] = 'Request processed';
+          });
+
+          await _logRequest(mockServerId, request);
+          _fetchSavedRequests(); // Refresh the saved requests
+        }
+
+        print("Response body after POST request: ${selectedResponseBodyController.text}");
+      } catch (e) {
+        print("Error: $e");
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
   }
 
-  void _sendDeleteRequest(int index, String path) async {
-    // Implement DELETE request logic if necessary
+  Future<void> _sendDeleteRequest(String path) async {
+    if (path.isNotEmpty) {
+      try {
+        print("Received DELETE request for path: $path");
+        Uri uri = Uri.parse(path);
+        List<String> segments = uri.pathSegments;
+
+        if (selectedRequest == null) {
+          print("Error: selectedRequest is null");
+          return;
+        }
+
+        RequestModel request = selectedRequest!;
+        request.uid = _uuid.v4();
+        request.url = path;
+        request.method = 'DELETE';
+        request.createdAt = Timestamp.now();
+        request.updatedAt = Timestamp.now();
+
+        // Ensure the response map is initialized
+        if (request.response == null) {
+          request.response = {'responseStatusCode': 200, 'body': ''};
+        }
+
+        if (uri.host.isNotEmpty && uri.host != 'localhost') {
+          // If the URL is an external API
+          var response = await http.delete(uri);
+          setState(() {
+            request.response['responseStatusCode'] = response.statusCode;
+            request.response['body'] = response.body;
+            selectedResponseBodyController.text = response.body;
+          });
+        } else {
+          // Check if the request already exists in saved requests
+          RequestModel? existingRequest = savedRequests.firstWhereOrNull(
+                (savedRequest) => savedRequest.url == uri.toString() && savedRequest.method == 'DELETE',
+          );
+
+          print("Existing request: $existingRequest");
+
+          if (existingRequest != null) {
+            // Use the existing request's response
+            setState(() {
+              print("Using existing request response");
+              selectedResponseBodyController.text = existingRequest.response['body'];
+              request.response['responseStatusCode'] = existingRequest.response['responseStatusCode'];
+              request.response['body'] = existingRequest.body;
+            });
+          } else {
+            if (segments.length >= 2 && segments[0] == 'mockServers') {
+              String mockServerId = segments[1];
+
+              setState(() {
+                selectedResponseBodyController.text = 'Request not found';
+                request.response['responseStatusCode'] = 404;
+                request.response['body'] = 'Request not found';
+              });
+
+              await _logRequest(mockServerId, request);
+              _fetchSavedRequests(); // Refresh the saved requests
+            } else {
+              print("Invalid URL structure");
+              setState(() {
+                selectedResponseBodyController.text = '404 Not Found';
+                request.response['responseStatusCode'] = 404;
+              });
+            }
+          }
+        }
+        print("Response body after DELETE request: ${selectedResponseBodyController.text}");
+      } catch (e) {
+        print("Error: $e");
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  Future<void> _sendPutRequest(String path, String requestBody) async {
+    if (path.isNotEmpty) {
+      try {
+        print("Received PUT request for path: $path with body: $requestBody");
+        Uri uri = Uri.parse(path);
+
+        if (selectedRequest == null) {
+          print("Error: selectedRequest is null");
+          return;
+        }
+
+        RequestModel request = selectedRequest!;
+        request.uid = _uuid.v4();
+        request.url = path;
+        request.method = 'PUT';
+        request.body = requestBody;
+        request.createdAt = Timestamp.now();
+        request.updatedAt = Timestamp.now();
+
+        // Ensure the response map is initialized
+        if (request.response == null) {
+          request.response = {'responseStatusCode': 200, 'body': ''};
+        }
+
+        if (uri.host.isNotEmpty && uri.host != 'localhost') {
+          // If the URL is an external API
+          var response = await http.put(uri, body: requestBody);
+          setState(() {
+            request.response['responseStatusCode'] = response.statusCode;
+            request.response['body'] = response.body;
+            selectedResponseBodyController.text = response.body;
+          });
+        } else {
+          // Handle PUT request logic for local paths
+          String mockServerId = uri.pathSegments[1];
+
+          setState(() {
+            selectedResponseBodyController.text = 'Request processed';
+            request.response['responseStatusCode'] = 200;
+            request.response['body'] = 'Request processed';
+          });
+
+          await _logRequest(mockServerId, request);
+          _fetchSavedRequests(); // Refresh the saved requests
+        }
+
+        print("Response body after PUT request: ${selectedResponseBodyController.text}");
+      } catch (e) {
+        print("Error: $e");
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
   }
 
   void _selectRequest(RequestModel request) {
     setState(() {
       selectedRequest = request;
-      selectedResponseBodyController.clear();
+      selectedResponseBodyController.clear(); // Clear the response body when selecting a request
       print("Selected request: ${request.requestName}");
     });
   }
@@ -223,6 +406,7 @@ class _MockServerScreenState extends State<MockServerScreen> {
       ),
       body: Row(
         children: [
+          // Sidebar for saved requests
           Container(
             width: 250,
             child: ListView.builder(
@@ -236,6 +420,7 @@ class _MockServerScreenState extends State<MockServerScreen> {
               },
             ),
           ),
+          // Main content area for request details
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.all(16.0),
@@ -252,14 +437,26 @@ class _MockServerScreenState extends State<MockServerScreen> {
                         request: selectedRequest!,
                         responseBodyController: selectedResponseBodyController,
                         onRemove: () {},
-                        onDelete: () => _sendDeleteRequest(0, selectedRequest!.url),
+                        onDelete: () => _removeRequest(requests.indexOf(selectedRequest!)),
                       ),
                       SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
                             _formKey.currentState!.save();
-                            _sendGetRequest(selectedRequest!.url);
+                            if (selectedRequest!.method == 'GET') {
+                              _sendGetRequest(selectedRequest!.url);
+                            } else if (selectedRequest!.method == 'POST') {
+                              _sendPostRequest(
+                                  requests.indexOf(selectedRequest!),
+                                  selectedRequest!.url,
+                                  selectedRequest!.body);
+                            } else if (selectedRequest!.method == 'DELETE') {
+                              _sendDeleteRequest(selectedRequest!.url);
+                            }
+                            else if (selectedRequest!.method == 'PUT') {
+                              _sendPutRequest(selectedRequest!.url, selectedRequest!.body);
+                            }
                           }
                         },
                         child: Text('Submit Request'),
@@ -274,7 +471,7 @@ class _MockServerScreenState extends State<MockServerScreen> {
                             request: requests[index],
                             responseBodyController: responseBodyControllers[index],
                             onRemove: () => _removeRequest(index),
-                            onDelete: () => _sendDeleteRequest(index, requests[index].url),
+                            onDelete: () => _removeRequest(index),
                           );
                         },
                       ),
@@ -282,25 +479,6 @@ class _MockServerScreenState extends State<MockServerScreen> {
                       ElevatedButton(
                         onPressed: _addNewRequest,
                         child: Text('Add Request Configuration'),
-                      ),
-                      SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            _formKey.currentState!.save();
-                            for (var i = 0; i < requests.length; i++) {
-                              var request = requests[i];
-                              if (request.method == 'GET') {
-                                _sendGetRequest(request.url);
-                              } else if (request.method == 'POST') {
-                                _sendPostRequest(i, request.url, request.body);
-                              } else if (request.method == 'DELETE') {
-                                _sendDeleteRequest(i, request.url);
-                              }
-                            }
-                          }
-                        },
-                        child: Text('Submit Requests'),
                       ),
                     ],
                     SizedBox(height: 16),

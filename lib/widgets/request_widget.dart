@@ -38,8 +38,7 @@ class RequestWidget extends StatelessWidget {
                       request.method = value!;
                       (context as Element).markNeedsBuild();
                     },
-                    decoration:
-                    const InputDecoration(labelText: 'Request Method'),
+                    decoration: const InputDecoration(labelText: 'Request Method'),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -67,21 +66,17 @@ class RequestWidget extends StatelessWidget {
               },
               decoration: const InputDecoration(labelText: 'Request Name'),
             ),
-            if (request.method != 'GET' && request.method != 'DELETE')
-              Column(
-                children: [
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    initialValue: request.response['responseStatusCode'].toString(),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      request.response['responseStatusCode'] = int.parse(value);
-                    },
-                    decoration: const InputDecoration(labelText: 'Response Code'),
-                  ),
-                ],
-              ),
             const SizedBox(height: 8),
+            if (request.method == 'DELETE')
+              TextFormField(
+                controller: responseBodyController,
+                maxLines: null,
+                onChanged: (value) {
+                  request.body = value;
+                },
+                decoration: const InputDecoration(labelText: 'Request Body'),
+                style: const TextStyle(fontSize: 12),
+              ),
             if (request.method != 'DELETE')
               TextFormField(
                 controller: responseBodyController,
@@ -89,14 +84,9 @@ class RequestWidget extends StatelessWidget {
                 onChanged: (value) {
                   request.body = value;
                 },
-                decoration: const InputDecoration(labelText: 'Response Body'),
+                decoration: const InputDecoration(labelText: 'Request Body'),
                 style: const TextStyle(fontSize: 12),
               ),
-            if (request.method == 'DELETE')
-              ElevatedButton(
-                onPressed: onDelete,
-                child: const Text('Delete Document'),
-              )
           ],
         ),
       ),
