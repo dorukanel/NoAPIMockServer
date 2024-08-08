@@ -13,7 +13,6 @@ const db = admin.firestore();
 
 app.use(express.json());
 
-// Common handler function
 async function handleRequest(req, res, method) {
   const { mockServerId, collectionName } = req.params;
   const requestUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
@@ -38,23 +37,22 @@ async function handleRequest(req, res, method) {
   }
 }
 
-// GET method handler
 app.get('/mockServers/:mockServerId/:collectionName', (req, res) => {
   handleRequest(req, res, 'GET');
 });
 
-// POST method handler
 app.post('/mockServers/:mockServerId/:collectionName', (req, res) => {
   handleRequest(req, res, 'POST');
 });
+
 app.delete('/mockServers/:mockServerId/:collectionName', (req, res) => {
   handleRequest(req, res, 'DELETE');
 });
+
 app.put('/mockServers/:mockServerId/:collectionName', (req, res) => {
-         handleRequest(req, res, 'PUT');
+  handleRequest(req, res, 'PUT');
 });
 
-// Start the server
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

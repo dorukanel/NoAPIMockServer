@@ -49,9 +49,18 @@ class FirestoreService {
     }
     return null;
   }
+  Future<RequestModel?> getRequestByUrlAndMethod(String mockServerId, String url, String method) async {
+    QuerySnapshot snapshot = await _db
+        .collection('mockServers')
+        .doc(mockServerId)
+        .collection('requests')
+        .where('url', isEqualTo: url)
+        .where('method', isEqualTo: method)
+        .get();
 
-  Future<void> addMockData(String mockServerId, Map<String, dynamic> data) async {
-    final docRef = _db.collection('mockServers').doc(mockServerId).collection('requests').doc();
-    await docRef.set(data);
+    if (snapshot.docs.isNotEmpty) {
+      return RequestModel.fromJson(snapshot.docs.first.data() as Map<String, dynamic>);
+    }
+    return null;
   }
 }
